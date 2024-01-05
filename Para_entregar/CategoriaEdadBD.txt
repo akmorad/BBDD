@@ -1,0 +1,164 @@
+package db.map;
+
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
+import db.AdministradorConexion;
+import model.CategoriaEdad;
+
+
+public class CategoriaEdadBD {
+	/**
+	 * Obtiene de la base de datos todas las categoría de edad devolviendo una lista de objetos CategoriaEdad 
+	 * @return
+	 */
+	public static List<CategoriaEdad> getAll() {
+		String sqlQuery = "SELECT * FROM categoriaEdad";
+		PreparedStatement stm;
+		ResultSet rs;
+		
+		
+		List<CategoriaEdad> categorias = new ArrayList<CategoriaEdad>();
+		
+		try {
+			stm = AdministradorConexion.prepareStatement(sqlQuery); //se declara el statement
+			rs = stm.executeQuery(sqlQuery); //se ejecuta la sentencia SQL
+	        while (rs.next()) {
+	            CategoriaEdad ce = new CategoriaEdad(rs.getInt(1), rs.getString(2),
+	            		rs.getString(3), rs.getInt(4), rs.getInt(5));  
+	     
+	            // y así sucesivamente con todos los campos de la CategoriaEdad
+	            categorias.add(ce);
+	        }
+	        
+	        rs.close();
+	        stm.close(); //se cierra el statement para liberar memoria
+	        
+	    } catch (Exception e) {
+	    	System.out.println("Mensaje error: " + e.getMessage());
+		}
+		
+		return categorias;
+	}
+	/**
+	 * 
+	 * @param categoriaEdad
+	 * @return Obtiene de la base de datos la categoría de edad con id igual al parámetro categoriaEdad, 
+	 *    creando un objeto del tipo model.CategoriaEdad
+	 */
+	public static CategoriaEdad getById(int categoriaEdad) {
+		String sqlQuery = "SELECT * FROM categoriaEdad" + " WHERE id = ' " + categoriaEdad + "';";
+		PreparedStatement stm;
+		ResultSet rs;
+		CategoriaEdad result = null;
+
+		try {
+			stm = AdministradorConexion.prepareStatement(sqlQuery); //se declara el statement
+			rs = stm.executeQuery(sqlQuery);  //se ejecuta la sentencia SQL
+			System.out.println("Tabla abierta");
+			
+			while (rs.next()){
+				int id = rs.getInt(1);  //asigna la respuesta de la posición 1 correspondiente a id
+				String nombre = rs.getString(2);  //asigna la respuesta de la posición 2 correspondiente a nombre
+				String descripcion = rs.getString(3);  //asigna la respuesta de la posición 3 correspondiente a descripcion
+				int edad_minima = rs.getInt(4);  //asigna la respuesta de la posición 4 correspondiente a edad_minima
+				int edad_maxima = rs.getInt(5);  //asigna la respuesta de la posición 5 correspondiente a edad_maxima
+			    System.out.println(id + "\t" + nombre + "\t" + descripcion + "\t" + edad_minima + "\t" + edad_maxima);
+		     }
+			 rs.close();
+		     stm.close ();  //se cierra el statement para liberar memoria
+		     
+	    } catch (SQLException e) {
+	    	System.out.println("Mensaje error: " + e.getMessage());
+	    	}
+	    
+		return result; //retorna null en el caso que no se establezca conexión con la DB
+	    }
+	
+	    
+	/**
+	 * 
+	 * @param ce
+	 * @return Borra de la base de datos la categoría de edad con id igual al identificador del objeto ce
+	 */
+	public static boolean deleteCategoria(CategoriaEdad ce) {
+		boolean resultado = false;
+		String sqlQuery = "DELETE * FROM categoria_edad" + ce + "';";
+		PreparedStatement stm;
+		
+		try {
+			stm = AdministradorConexion.prepareStatement(sqlQuery); //se declara el statement
+			int valor = stm.executeUpdate(sqlQuery);  //se ejecuta la sentencia SQL
+			
+			if(valor > 0) {
+				resultado = true;  //retorna true 
+			}
+		    stm.close ();  //se cierra el statement para liberar memoria
+				
+		}catch (SQLException e) {
+			System.out.println("Mensaje error: " + e.getMessage());
+		}
+	        
+		return resultado;
+		}
+		
+	
+	
+	/**
+	 * Este método guarda en la base de datos (actualiza o crea) los objetos del tipo CategoriaEdad que recibe en
+	 * la lista data
+	 * Si el objeto CategoriaEdad tiene id igual a -1 (se ha creado en Java) se realiza un insert y se actualiza el
+	 * id en el objeto
+	 * Si el objeto tiene id (se ha recuperado de la bbdd) se hace un update
+	 * @param data
+	 */
+	public static void saveAll(List<CategoriaEdad> data) {
+		String queryInsert = "INSERT INTO categoria_edad (nombre, descripcion, edad_minima, edad_maxima) VALUES (?,?,?,?); " ;
+		String queryUpdate = "UPDATE categoria_edad SET nombre=?, descripcion=?, edad_minima=?, edad_maxima=? WHERE id=?; " ;
+		PreparedStatement psInsert = null, psUpdate = null;
+		try {
+			psInsert = AdministradorConexion.prepareStatement(queryInsert);
+			psUpdate = AdministradorConexion.prepareStatement(queryUpdate);
+			for (CategoriaEdad ce : data) {
+				if (ce.getId()<0) {
+					psInsert.setString(1, ce.getNombre());
+					psInsert.setString(2, ce.getDescripcion());
+					psInsert.setInt(3, ce.getEdadMinima());
+					psInsert.setInt(4, ce.getEdadMaxima());
+					//boolean done = 
+					psInsert.execute();	
+					ResultSet rs = psInsert.getGeneratedKeys();
+					if (rs.next()) {
+					  int newId = rs.getInt(1);
+					  ce.setId(newId);
+					}
+				}
+				else {
+					psUpdate.setString(1, ce.getNombre());
+					psUpdate.setString(2, ce.getDescripcion());
+					psUpdate.setInt(3, ce.getEdadMinima());
+					psUpdate.setInt(4, ce.getEdadMaxima());
+					psUpdate.setInt(5, ce.getId());
+					//boolean done = 
+					psUpdate.execute();
+				}
+			}
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+			try {
+				if (psInsert!=null && !psInsert.isClosed())
+					psInsert.close();
+				if (psUpdate!=null && !psUpdate.isClosed())
+					psUpdate.close();
+					
+			} catch (SQLException e1) {
+				e1.printStackTrace();
+			}
+		}
+		
+	}
+}

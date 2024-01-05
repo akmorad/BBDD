@@ -1,0 +1,187 @@
+package db.stats;
+
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
+import db.AdministradorConexion;
+import db.map.JugadorBD;
+import model.Equipo;
+import model.Jugador;
+
+public class Estadisticas {
+	/**
+	 * Método que debe devolver el listado de los jugadores que no han estado en ningún equipo 
+	 * en el año recibido como parámetro
+	 * @param anio
+	 * @return
+	 */
+	public static List<Jugador> getJugadoresNoHanEstadoEnEquipo(int anio){
+		List<Jugador> res = new ArrayList<>();
+		String sqlQuery = "SELECT * FROM jugador_milita_equipo;";
+		PreparedStatement stm = null;
+		ResultSet rs = null;
+		List<Jugador> listaJugadores = JugadorBD.getAll();
+		List<String> listaNIF = new ArrayList<>();
+		try {
+			stm = AdministradorConexion.prepareStatement(sqlQuery);
+			rs = stm.executeQuery();
+			
+			while (rs.next()) {
+				
+				if (rs.getDate("fecha_inicio").toLocalDate().getYear() <= anio && (rs.getDate("fecha_fin") == null || rs.getDate("fecha_fin").toLocalDate().getYear() >= anio))
+					listaNIF.add(rs.getString("nif_Jugador"));
+				
+			}
+			for (Jugador jg: listaJugadores) {
+				if (!listaNIF.contains(jg.getNif()))
+					res.add(jg);
+			}
+			
+
+		} catch (SQLException e) { 
+            System.err.println("Error al consultar los jugadores que no han estado en el equipo: ");
+            System.err.println(e.getMessage());
+			} catch (Exception e){
+            System.err.println("Otro tipo de error: ");
+            System.err.println(e.getMessage());
+        } finally {
+            try {
+                if(stm!=null) stm.close();
+                if(rs!=null) rs.close();
+            } catch(SQLException e) {
+                System.err.println("Error al liberar los recursos: ");
+                System.err.println(e.getMessage());
+            }
+        }
+		return res;
+	    
+	}
+	
+	/**
+	 * Método que devuelve el número de equipos del mismo club máximo en los que algún jugador ha estado
+	 * @return
+	 */
+	public static int getNumeroMaximoEquiposDelMismoClubHaEstadoUnJugador(){
+        int res = 0;
+		String sqlQuery = "SELECT * FROM equipo, jugador_milita_equipo " +
+					 	"WHERE equipo.licencia = jugador_milita_equipo.licencia_equipo " +
+					 	"ORDER BY jugador_milita_equipo.listaNIF_jugador, equipo.nombre_club, equipo.licencia;";
+
+		PreparedStatement stm = null;
+		ResultSet rs = null;
+		
+		try {
+			stm = AdministradorConexion.prepareStatement(sqlQuery);
+			rs = stm.executeQuery();
+			
+			int contador = 0;
+			int max = 0;
+			String NIFanterior = "";
+			String clubAnterior = "";
+			int licenciaAnterior = 0;
+			
+			while (rs.next()) {
+				if (NIFanterior.equals(rs.getString("listaNIF_jugador")) && clubAnterior.equals(rs.getString("equipo.nombre_club"))) {
+					if (licenciaAnterior != rs.getInt("equipo.licencia"))
+						contador++;
+					else
+						contador = 1;
+				}
+				else 
+					contador = 1;
+				if (contador > max)
+					max = contador;
+				NIFanterior = rs.getString("listaNIF_jugador");
+				clubAnterior = rs.getString("equipo.nombre_club");
+				licenciaAnterior = rs.getInt("equipo.licencia");
+			}
+			
+			res = max;
+			
+		} catch (SQLException e) { 
+		    System.err.println("Error al consultar los jugadores que han estado en los equipos : ");
+		    System.err.println(e.getMessage());
+		} catch (Exception e){
+		    System.err.println("Otro tipo de error: ");
+		    System.err.println(e.getMessage());
+		} finally {
+		    try {
+		        if(stm!=null) stm.close();
+		        if(rs!=null) rs.close();
+		    } catch(SQLException e) {
+		        System.err.println("Error al liberar los recursos: ");
+		        System.err.println(e.getMessage());
+		    }
+		    
+		}
+		return res;
+	}
+	
+	/**
+	 * Método que debe devolver el listado de los jugadores que han estado en el mayor número de equipos
+	 * del mismo club 
+	 * @return
+	 */
+	public static List<Jugador> getJugadoresMasEquiposMismoClub(){
+		List<Jugador> res = new ArrayList<>();
+		String sqlQuery = "SELECT * FROM jugador_milita_equipo;";
+		PreparedStatement stm = null;
+		ResultSet rs = null;
+		List<Jugador> listaJugadores = JugadorBD.getAll();
+		List<String> listaNIF = new ArrayList<>();
+		
+        //INCOMPLETO, PROBLEMAS AL COMPILAR Y DA VARIOS ERRORES.
+		
+		return null;
+	}
+
+	/**
+	 * Método que debe devolver el listado de los jugadores que han estado en el equipo recibido como
+	 * parámetro el año (anio)
+	 * @param equipo
+	 * @param anio
+	 * @return
+	 */
+	public static List<Jugador> getJugadoresEquipoAnio(Equipo equipo, int anio) {
+		List<Jugador> res = new ArrayList<>();
+		String sqlQuery = "SELECT * FROM jugador_milita_equipo;";
+		PreparedStatement stm = null;
+		ResultSet rs = null;
+		List<Jugador> listaJugadores = JugadorBD.getAll();
+		List<String> listaNIF = new ArrayList<>();
+		try {
+			stm = AdministradorConexion.prepareStatement(sqlQuery);
+			rs = stm.executeQuery();
+			while (rs.next()) {
+				
+				if (rs.getString("licencia_equipo").equals(equipo.getLicencia()) && rs.getDate("fecha_inicio").toLocalDate().getYear() <= anio && (rs.getDate("fecha_fin") == null || rs.getDate("fecha_fin").toLocalDate().getYear() >= anio)){
+					listaNIF.add(rs.getString("listaNIF_Jugador"));
+				}
+				
+			}
+			for (Jugador jugador: listaJugadores) {
+				if (listaNIF.contains(jugador.getNif()))
+					res.add(jugador);
+			}
+
+		} catch (SQLException e) { 
+            System.err.println("Error al consultar los jugadores que no han estado en el equipo: ");
+            System.err.println(e.getMessage());
+        } catch (Exception e){
+            System.err.println("Otro tipo de error: ");
+            System.err.println(e.getMessage());
+        } finally {
+            try {
+                if(stm!=null) stm.close();
+                if(rs!=null) rs.close();
+            } catch(SQLException e) {
+                System.err.println("Error al liberar los recursos: ");
+                System.err.println(e.getMessage());
+            }
+        }
+		return res;
+	}
+}

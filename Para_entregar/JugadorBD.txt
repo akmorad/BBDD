@@ -1,0 +1,81 @@
+package db.map;
+
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
+import db.AdministradorConexion;
+import model.Jugador;
+
+public class JugadorBD {
+
+	/**
+	 * Obtiene de la base de datos todos los jugador, 
+	 *    devolviendo una lista de objetos del tipo model.Jugador
+	 * @return
+	 */
+	public static List<Jugador> getAll() {
+		String sqlQuery = "SELECT * FROM jugador";
+		PreparedStatement stm;
+		ResultSet rs;
+		List<Jugador> jugadores = new ArrayList<Jugador>();
+		
+		try {
+			stm = AdministradorConexion.prepareStatement(sqlQuery); //se declara el statement
+			rs = stm.executeQuery(sqlQuery);  //se ejecuta la sentencia SQL
+	        while (rs.next()) {
+	            Jugador jg = new Jugador(rs.getString(1), rs.getString(2), rs.getString(3),
+	            		rs.getString(4), rs.getDate(5).toLocalDate());
+	            // y así sucesivamente con todos los campos del Jugador
+	            jugadores.add(jg);
+	        }
+	        
+	        rs.close();
+	        stm.close(); //se cierra el statement para liberar memoria
+	        
+	    } catch (Exception e) {
+	    	System.out.println("Mensaje error: " + e.getMessage());
+	    	
+		}
+		return jugadores; 
+	}
+	
+	/**
+	 * Obtiene de la base de datos el jugador con nif igual al parámetro nifJugador, 
+	 *    creando un objeto del tipo model.Jugador
+	 * @param nifJugador
+	 * @return
+	 */
+	public static Jugador getById(String nifJugador) {
+		String sqlQuery = "SELECT * FROM jugador" + " WHERE nif  = '" + nifJugador + "';";
+		PreparedStatement stm;
+		ResultSet rs;
+		Jugador result = null;
+		
+		try {
+			stm = AdministradorConexion.prepareStatement(sqlQuery); //se declara el statement
+			rs = stm.executeQuery(); //se ejecuta la sentencia SQL
+
+			while (rs.next()){
+				String nif = rs.getString(1); //asigna la respuesta de la posición 1 correspondiente a nif
+				String nombre = rs.getString(2); //asigna la respuesta de la posición 2 correspondiente a nombre
+				String apellido_1 = rs.getString(3); //asigna la respuesta de la posición 3 correspondiente a apellido1
+				String apellido_2 = rs.getString(4); //asigna la respuesta de la posición 4 correspondiente a apellido2
+			    Date fecha_nacimiento = rs.getDate(5); //asigna la respuesta de la posición 5 correspondiente a fechaNacimiento
+			    System.out.println(nif + "\t" + nombre + "\t" + apellido_1 + "\t" + apellido_2 + "\t" + fecha_nacimiento);
+		     }
+			
+			 rs.close();
+		     stm.close (); //se cierra el statement para liberar memoria
+		     
+	    } catch (SQLException e) {
+	    	System.out.println("Mensaje error: " + e.getMessage());
+	    }
+	    
+		return result; //retorna null en el caso que no se establezca conexión con la DB
+	    }
+	
+}
